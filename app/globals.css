@@ -3,19 +3,19 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  font-family: var(--font-poppins);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* Optional: Set default font weights */
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 400; /* Regular as default */
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600; /* Semi-bold for headings */
+}
+
+/* If you need monospace font somewhere */
+code, pre {
+  font-family: var(--font-geist-mono), monospace;
 }
