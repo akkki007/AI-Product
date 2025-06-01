@@ -13,14 +13,12 @@ import {
   Twitter,
   Linkedin,
   Mail,
-  PersonStanding,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { ThemeToggle } from "@/components/theme-toggle"
-import Navbar from "@/components/Navbar"
 
 export default function Home() {
   return (
@@ -39,18 +37,103 @@ export default function Home() {
       </div>
 
       {/* Navigation */}
-      <Navbar/>
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-4">
+          <div className="flex h-16 items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Frame className="h-6 w-6" />
+              <span className="font-bold text-xl">Nexus</span>
+            </div>
+
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center gap-6">
+              <Link href="#" className="text-sm font-medium hover:text-primary transition-colors">
+                Home
+              </Link>
+              <Link href="#" className="text-sm font-medium hover:text-primary transition-colors">
+                Login/Signup
+              </Link>
+              
+              <Link href="#" className="text-sm font-medium hover:text-primary transition-colors">
+                Features
+              </Link>
+              <Link href="#" className="text-sm font-medium hover:text-primary transition-colors">
+                About
+              </Link>
+              <Link href="#" className="text-sm font-medium hover:text-primary transition-colors">
+                Contact
+              </Link>
+            </nav>
+
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+
+              {/* Mobile Navigation */}
+              <div className="md:hidden">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <svg
+                        className="h-5 w-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 6h16M4 12h16M4 18h16"
+                        />
+                      </svg>
+                      <span className="sr-only">Toggle menu</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem asChild>
+                      <Link href="#" className="w-full">
+                        Home
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="#" className="w-full">
+                        Features
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="#" className="w-full">
+                        About
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="#" className="w-full">
+                        Contact
+                      </Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+
+              {/* Desktop CTA Button */}
+              <Link href="/authentication">
+              <Button className="hidden md:inline-flex">Get Started</Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </header>
 
       {/* Hero Section */}
       <section className="flex-1">
         <div className="container mx-auto px-4 py-16 md:py-24 text-center">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold max-w-5xl mx-auto leading-tight tracking-tighter mb-8">
-          Transform Your Organization's Communication with AI
+            Transform Your Organization's Communication with AI
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-10">
-            <span className="font-semibold text-foreground">Nexus</span> is a advanced chat platform that is 
-            powered using <span className="font-semibold text-foreground">Model Context Protocol</span>. It has been
-            designed following Best Practices, SEO, Accessibility, Dark Mode, great Page Speed, image optimization.
+            <span className="font-semibold text-foreground">Nexus</span> is a advanced chat platform that is powered
+            using <span className="font-semibold text-foreground">Model Context Protocol</span>. It has been designed
+            following Best Practices, SEO, Accessibility, Dark Mode, great Page Speed, image optimization.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" className="gap-2">
@@ -237,8 +320,8 @@ export default function Home() {
                 </div>
               </div>
               <p className="text-muted-foreground">
-                "As a beginner in web development, I really needed clear guidance. Nexus made it possible. I was able
-                to install and customize my website seamlessly..."
+                "As a beginner in web development, I really needed clear guidance. Nexus made it possible. I was able to
+                install and customize my website seamlessly..."
               </p>
             </div>
 
