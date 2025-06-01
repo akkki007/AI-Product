@@ -97,6 +97,11 @@ export default function Home() {
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
+                      <Link href="/authentication" className="w-full">
+                        Login/Signup
+                      </Link>
+                      </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
                       <Link href="#" className="w-full">
                         Features
                       </Link>
@@ -106,6 +111,7 @@ export default function Home() {
                         About
                       </Link>
                     </DropdownMenuItem>
+
                     <DropdownMenuItem asChild>
                       <Link href="#" className="w-full">
                         Contact
