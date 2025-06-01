@@ -1,9 +1,17 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
+import React, { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from "react"
 import { supabase } from "@/utils/supabase"
 import { Search, LogOut, X, MessageSquare, Users, CheckSquare, Send, ArrowLeft } from "lucide-react"
 import { CohereClient } from "cohere-ai"
-import TodoList from "@/components/TodoList"
+import useDebounce from "@/hooks/useDebounce"
+
+// Lazy load components
+const TodoList = lazy(() => import("@/components/TodoList"))
+const MessageBubble = lazy(() => import("@/components/MessageBubble"))
+const UserListItem = lazy(() => import("@/components/UserListItem"))
+const EmptyChatState = lazy(() => import("@/components/EmptyChatState"))
 
 interface ChatUser {
   id: string
@@ -20,6 +28,7 @@ interface Message {
   content: string
   created_at: string
   is_read?: boolean
+  is_calendar_event?: boolean
 }
 
 export default function ResponsiveChatApp() {
@@ -39,7 +48,12 @@ export default function ResponsiveChatApp() {
   const [showMobileChat, setShowMobileChat] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
-
+  const [todoWidth, setTodoWidth] = useState(320)
+  const minTodoWidth = 240
+  const maxTodoWidth = 600
+  const sidebarRef = useRef<HTMLDivElement>(null)
+  const isResizing = useRef(false)
+  
   // Memoized user data calculations
   const getInitials = useCallback((user: ChatUser) => {
     if (user.full_name) {
@@ -109,30 +123,39 @@ export default function ResponsiveChatApp() {
     }
   }, [currentUser, selectedUser])
 
-  // Initialize app with parallel loading
   useEffect(() => {
     const initializeApp = async () => {
       setLoading(true)
+      
       try {
-        const [
-          {
-            data: { session },
-          },
-          { data: profiles },
-        ] = await Promise.all([supabase.auth.getSession(), supabase.from("profiles").select("*")])
-
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        if (sessionError) throw sessionError
+        
         if (session?.user) {
+          const user = session.user
           const userData = {
-            id: session.user.id,
-            username: session.user.user_metadata?.username || session.user.email?.split("@")[0] || "user",
-            full_name: session.user.user_metadata?.full_name,
-            avatar_url: session.user.user_metadata?.avatar_url,
+            id: user.id,
+            username: user.user_metadata?.username || user.email?.split("@")[0] || "user",
+            full_name: user.user_metadata?.full_name,
+            avatar_url: user.user_metadata?.avatar_url,
           }
+
+          const [_, profilesResult] = await Promise.all([
+            // Get Google token (placeholder for future implementation)
+            Promise.resolve(null),
+            supabase.from("profiles").select("*").neq("id", user.id)
+          ])
+
+          if (profilesResult.error) throw profilesResult.error
+          
           setCurrentUser(userData)
-          setUsers(profiles?.filter((p) => p.id !== session.user.id) || [])
+          setUsers(profilesResult.data || [])
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Initialization error:", error)
+        if (error?.message?.includes('auth') || error?.message?.includes('session')) {
+          console.log("Authentication issue detected")
+        }
       } finally {
         setLoading(false)
       }
@@ -140,24 +163,39 @@ export default function ResponsiveChatApp() {
 
     initializeApp()
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_IN" && session?.user) {
+        const user = session.user
         const userData = {
-          id: session.user.id,
-          username: session.user.user_metadata?.username || session.user.email?.split("@")[0] || "user",
-          full_name: session.user.user_metadata?.full_name,
-          avatar_url: session.user.user_metadata?.avatar_url,
+          id: user.id,
+          username: user.user_metadata?.username || user.email?.split("@")[0] || "user",
+          full_name: user.user_metadata?.full_name,
+          avatar_url: user.user_metadata?.avatar_url,
         }
+        
         setCurrentUser(userData)
-        await loadUsers()
-      } else {
+        
+        try {
+          const { data: profiles, error: profileError } = await supabase
+            .from("profiles")
+            .select("*")
+            .neq("id", user.id)
+          
+          if (!profileError) {
+            setUsers(profiles || [])
+          }
+        } catch (error) {
+          console.error("Error loading users after sign in:", error)
+        }
+      } else if (event === "SIGNED_OUT") {
         setCurrentUser(null)
+        setUsers([])
       }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      subscription?.unsubscribe()
+    }
   }, [])
 
   // Load users with pagination
@@ -172,10 +210,7 @@ export default function ResponsiveChatApp() {
         .neq("id", currentUser.id)
         .order("full_name", { ascending: true })
 
-      if (error) {
-        console.error("Error loading users:", error)
-        throw error
-      }
+      if (error) throw error
       setUsers(data || [])
     } catch (error) {
       console.error("Failed to load users:", error)
@@ -199,10 +234,7 @@ export default function ResponsiveChatApp() {
           )
           .order("created_at", { ascending: true })
 
-        if (error) {
-          console.error("Error loading messages:", error)
-          throw error
-        }
+        if (error) throw error
         setMessages(data || [])
       } catch (error) {
         console.error("Failed to load messages:", error)
@@ -254,9 +286,7 @@ export default function ResponsiveChatApp() {
         (payload) => {
           const newMessage = payload.new as Message
           setMessages((prev) => {
-            if (prev.some((msg) => msg.id === newMessage.id)) {
-              return prev
-            }
+            if (prev.some((msg) => msg.id === newMessage.id)) return prev
             return [...prev, newMessage]
           })
 
@@ -312,7 +342,7 @@ export default function ResponsiveChatApp() {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" })
     }
-  }, [messages])
+  }, [filteredMessages])
 
   // Handle typing indicator
   const handleTyping = useCallback(async () => {
@@ -330,9 +360,7 @@ export default function ResponsiveChatApp() {
   // Fixed message sending function
   const sendMessage = useCallback(async () => {
     const messageContent = newMessage.trim()
-    if (!messageContent || !selectedUser || !currentUser || sendingMessage) {
-      return
-    }
+    if (!messageContent || !selectedUser || !currentUser || sendingMessage) return
 
     setSendingMessage(true)
     const tempId = `temp_${Date.now()}_${Math.random()}`
@@ -344,6 +372,7 @@ export default function ResponsiveChatApp() {
       content: messageContent,
       created_at: new Date().toISOString(),
       is_read: false,
+      is_calendar_event: true,
     }
 
     setMessages((prev) => [...prev, optimisticMessage])
@@ -360,13 +389,7 @@ export default function ResponsiveChatApp() {
         inputType: "search_document",
       })
 
-      if (
-        !embed?.embeddings ||
-        !Array.isArray(embed.embeddings) ||
-        embed.embeddings.length === 0 ||
-        !Array.isArray(embed.embeddings[0]) ||
-        embed.embeddings[0].length === 0
-      ) {
+      if (!embed?.embeddings || !Array.isArray(embed.embeddings)) {
         throw new Error("Failed to generate embedding")
       }
 
@@ -380,14 +403,12 @@ export default function ResponsiveChatApp() {
           content: messageContent,
           embedding: embedding,
           is_read: false,
+          is_calendar_event: true,
         })
         .select()
         .single()
 
-      if (error) {
-        console.error("Database error sending message:", error)
-        throw error
-      }
+      if (error) throw error
 
       if (data) {
         setMessages((prev) => prev.map((msg) => (msg.id === tempId ? { ...data, is_read: false } : msg)))
@@ -396,7 +417,6 @@ export default function ResponsiveChatApp() {
       console.error("Failed to send message:", error)
       setMessages((prev) => prev.filter((msg) => msg.id !== tempId))
       setNewMessage(messageContent)
-      alert("Failed to send message. Please try again.")
     } finally {
       setSendingMessage(false)
     }
@@ -428,6 +448,23 @@ export default function ResponsiveChatApp() {
   const handleBackToChats = useCallback(() => {
     setShowMobileChat(false)
     setSelectedUser(null)
+  }, [])
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing.current) return
+      const newWidth = window.innerWidth - e.clientX
+      setTodoWidth(Math.max(minTodoWidth, Math.min(maxTodoWidth, newWidth)))
+    }
+    const handleMouseUp = () => {
+      isResizing.current = false
+    }
+    window.addEventListener("mousemove", handleMouseMove)
+    window.addEventListener("mouseup", handleMouseUp)
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove)
+      window.removeEventListener("mouseup", handleMouseUp)
+    }
   }, [])
 
   if (loading) {
@@ -462,7 +499,7 @@ export default function ResponsiveChatApp() {
   }
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-slate-50 to-blue-50 overflow-hidden">
+    <div className="flex min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 xl:overflow-y-hidden overflow-hidden">
       {/* Mobile Navigation */}
       <div className="lg:hidden fixed top-0 left-0 right-0 bg-white border-b border-slate-200 z-50 px-4 py-3">
         <div className="flex items-center justify-between">
@@ -549,21 +586,23 @@ export default function ResponsiveChatApp() {
               </p>
             </div>
           ) : (
-            filteredUsers.map((user) => (
-              <UserListItem
-                key={user.id}
-                user={user}
-                currentUser={currentUser}
-                messages={messages}
-                isSelected={selectedUser?.id === user.id}
-                onClick={() => {
-                  setSelectedUser(user)
-                  setActiveTab("chats")
-                }}
-                getInitials={getInitials}
-                getDisplayName={getDisplayName}
-              />
-            ))
+            <Suspense fallback={<div className="p-6 text-center">Loading users...</div>}>
+              {filteredUsers.map((user) => (
+                <UserListItem
+                  key={user.id}
+                  user={user}
+                  currentUser={currentUser}
+                  messages={messages}
+                  isSelected={selectedUser?.id === user.id}
+                  onClick={() => {
+                    setSelectedUser(user)
+                    setActiveTab("chats")
+                  }}
+                  getInitials={getInitials}
+                  getDisplayName={getDisplayName}
+                />
+              ))}
+            </Suspense>
           )}
         </div>
 
@@ -592,7 +631,7 @@ export default function ResponsiveChatApp() {
       <div
         className={`${
           showMobileChat || (!showMobileChat && activeTab === "chats") ? "block" : "hidden"
-        } lg:block flex-1 flex flex-col bg-white pt-16 lg:pt-0 h-full`}
+        } lg:block flex-1 bg-white pt-16 lg:pt-0 h-screen flex flex-col`}
       >
         {selectedUser ? (
           <>
@@ -645,45 +684,49 @@ export default function ResponsiveChatApp() {
             </div>
 
             {/* Messages Container */}
-            <div
-              ref={messagesContainerRef}
-              className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-4 bg-gradient-to-b from-slate-50/50 to-white"
-            >
-              {loadingMessages && messages.length === 0 ? (
-                <div className="text-center py-8">
-                  <div className="w-8 h-8 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>
-                  <p className="text-slate-500">Loading messages...</p>
-                </div>
-              ) : (
-                <>
-                  {filteredMessages.length === 0 && chatSearchTerm ? (
-                    <div className="text-center py-12">
-                      <Search className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                      <p className="text-slate-500 font-medium">No messages found</p>
-                      <p className="text-slate-400 text-sm">Try searching for something else</p>
-                    </div>
-                  ) : filteredMessages.length === 0 ? (
-                    <div className="text-center py-12">
-                      <MessageSquare className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                      <p className="text-slate-500 font-medium">Start your conversation</p>
-                      <p className="text-slate-400 text-sm">Send a message to get started</p>
-                    </div>
-                  ) : (
-                    filteredMessages.map((message) => (
-                      <MessageBubble
-                        key={message.id}
-                        message={message}
-                        isCurrentUser={message.sender_id === currentUser.id}
-                        isHighlighted={
-                          chatSearchTerm.length > 0 &&
-                          message.content.toLowerCase().includes(chatSearchTerm.toLowerCase())
-                        }
-                      />
-                    ))
-                  )}
-                  <div ref={messagesEndRef} />
-                </>
-              )}
+            <div className="flex-1 min-h-0 overflow-hidden">
+              <div
+                ref={messagesContainerRef}
+                className="h-full overflow-y-auto p-4 lg:p-6 space-y-4 bg-gradient-to-b from-slate-50/50 to-white"
+              >
+                {loadingMessages && messages.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="w-8 h-8 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-3"></div>
+                    <p className="text-slate-500">Loading messages...</p>
+                  </div>
+                ) : (
+                  <>
+                    {filteredMessages.length === 0 && chatSearchTerm ? (
+                      <div className="text-center py-12">
+                        <Search className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                        <p className="text-slate-500 font-medium">No messages found</p>
+                        <p className="text-slate-400 text-sm">Try searching for something else</p>
+                      </div>
+                    ) : filteredMessages.length === 0 ? (
+                      <div className="text-center py-12">
+                        <MessageSquare className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                        <p className="text-slate-500 font-medium">Start your conversation</p>
+                        <p className="text-slate-400 text-sm">Send a message to get started</p>
+                      </div>
+                    ) : (
+                      <Suspense fallback={<div className="text-center py-8">Loading messages...</div>}>
+                        {filteredMessages.map((message) => (
+                          <MessageBubble
+                            key={message.id}
+                            message={message}
+                            isCurrentUser={message.sender_id === currentUser.id}
+                            isHighlighted={
+                              chatSearchTerm.length > 0 &&
+                              message.content.toLowerCase().includes(chatSearchTerm.toLowerCase())
+                            }
+                          />
+                        ))}
+                      </Suspense>
+                    )}
+                    <div ref={messagesEndRef} />
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Message Input */}
@@ -716,151 +759,33 @@ export default function ResponsiveChatApp() {
             </div>
           </>
         ) : (
-          <EmptyChatState />
+          <Suspense fallback={<div className="flex-1 flex items-center justify-center">Loading...</div>}>
+            <EmptyChatState />
+          </Suspense>
         )}
       </div>
 
       {/* Right Sidebar - Todos */}
       <div
+        ref={sidebarRef}
+        style={{ width: todoWidth, minWidth: minTodoWidth, maxWidth: maxTodoWidth }}
         className={`${
           activeTab === "todos" ? "block" : "hidden"
-        } lg:block w-full lg:w-80 border-l border-slate-200 bg-white pt-16 lg:pt-0 h-full`}
+        } lg:block border-l border-slate-200 bg-white pt-16 lg:pt-0 h-full relative transition-all duration-200`}
       >
-        <TodoList />
-      </div>
-    </div>
-  )
-}
-
-function useDebounce(value: string, delay: number) {
-  const [debouncedValue, setDebouncedValue] = useState(value)
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value)
-    }, delay)
-
-    return () => {
-      clearTimeout(handler)
-    }
-  }, [value, delay])
-
-  return debouncedValue
-}
-
-interface UserListItemProps {
-  user: ChatUser
-  currentUser: ChatUser
-  messages: Message[]
-  isSelected: boolean
-  onClick: () => void
-  getInitials: (user: ChatUser) => string
-  getDisplayName: (user: ChatUser) => string
-}
-
-const UserListItem = React.memo(function UserListItem({
-  user,
-  currentUser,
-  messages,
-  isSelected,
-  onClick,
-  getInitials,
-  getDisplayName,
-}: UserListItemProps) {
-  const lastMessage = useMemo(() => {
-    const userMessages = messages.filter(
-      (m) =>
-        (m.sender_id === user.id && m.receiver_id === currentUser.id) ||
-        (m.sender_id === currentUser.id && m.receiver_id === user.id),
-    )
-    return userMessages.length > 0 ? userMessages[userMessages.length - 1].content : "Start a conversation"
-  }, [messages, user.id, currentUser.id])
-
-  const unreadCount = useMemo(() => {
-    return messages.filter((m) => m.sender_id === user.id && m.receiver_id === currentUser.id && !m.is_read).length
-  }, [messages, user.id, currentUser.id])
-
-  return (
-    <div
-      onClick={onClick}
-      className={`flex items-center p-4 border-b border-slate-100 cursor-pointer transition-all hover:bg-slate-50 ${
-        isSelected ? "bg-blue-50 border-blue-200" : ""
-      }`}
-    >
-      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mr-3 shadow-md">
-        <span className="text-white font-medium">{getInitials(user)}</span>
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between">
-          <p className="font-semibold text-slate-800 truncate">{getDisplayName(user)}</p>
-          {unreadCount > 0 && (
-            <span className="bg-blue-600 text-white text-xs font-bold px-2 py-1 rounded-full min-w-[20px] text-center">
-              {unreadCount > 99 ? "99+" : unreadCount}
-            </span>
-          )}
-        </div>
-        <p className="text-sm text-slate-500 truncate mt-1">{lastMessage}</p>
-      </div>
-    </div>
-  )
-})
-
-interface MessageBubbleProps {
-  message: Message
-  isCurrentUser: boolean
-  isHighlighted?: boolean
-}
-
-const MessageBubble = React.memo(function MessageBubble({
-  message,
-  isCurrentUser,
-  isHighlighted = false,
-}: MessageBubbleProps) {
-  return (
-    <div className={`flex ${isCurrentUser ? "justify-end" : "justify-start"}`}>
-      <div className="flex flex-col items-end max-w-xs lg:max-w-md">
+        {/* Drag handle */}
         <div
-          className={`px-4 py-3 rounded-2xl shadow-sm ${
-            isCurrentUser
-              ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white"
-              : "bg-white border border-slate-200 text-slate-800"
-          } ${isHighlighted ? "ring-2 ring-yellow-400 ring-opacity-75" : ""}`}
-        >
-          <p className="break-words leading-relaxed">{message.content}</p>
-        </div>
-        <div className="flex items-center mt-2 space-x-2">
-          <p className={`text-xs ${isCurrentUser ? "text-blue-600" : "text-slate-500"}`}>
-            {new Date(message.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-          </p>
-          {isCurrentUser && (
-            <span className={`text-xs ${message.is_read ? "text-blue-600" : "text-slate-400"}`}>
-              {message.is_read ? "✓✓" : "✓"}
-            </span>
-          )}
-        </div>
+          className="absolute left-0 top-0 h-full w-2 cursor-ew-resize z-50"
+          onMouseDown={() => { isResizing.current = true }}
+          style={{ background: "rgba(0,0,0,0.01)" }}
+          title="Drag to resize"
+        />
+        <Suspense fallback={<div className="p-4">Loading todos...</div>}>
+          <TodoList />
+        </Suspense>
       </div>
     </div>
   )
-})
+}
 
-const EmptyChatState = React.memo(function EmptyChatState() {
-  return (
-    <div className="flex-1 flex items-center justify-center bg-gradient-to-b from-slate-50/50 to-white">
-      <div className="text-center max-w-md mx-auto p-8">
-        <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
-          <MessageSquare className="text-blue-600 w-10 h-10" />
-        </div>
-        <h3 className="text-2xl font-bold text-slate-800 mb-3">Welcome to your workspace</h3>
-        <p className="text-slate-600 mb-6 leading-relaxed">
-          Select a conversation from the sidebar to start messaging, or check your tasks in the todo panel.
-        </p>
-        <div className="flex items-center justify-center space-x-4 text-sm text-slate-500">
-          <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-            <span>Real-time messaging</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-})
+ 
