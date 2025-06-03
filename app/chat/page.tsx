@@ -1,93 +1,90 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
-import React, { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from "react"
-import { supabase } from "@/utils/supabase"
-import { Search, LogOut, X, MessageSquare, Users, CheckSquare, Send, ArrowLeft } from "lucide-react"
-import { CohereClient } from "cohere-ai"
-import useDebounce from "@/hooks/useDebounce"
+import React, { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from "react";
+import { supabase } from "@/utils/supabase";
+import { Search, LogOut, X, MessageSquare, Users, CheckSquare, Send, ArrowLeft } from "lucide-react";
+import { CohereClient } from "cohere-ai";
+import useDebounce from "@/hooks/useDebounce";
 
 // Lazy load components
-const TodoList = lazy(() => import("@/components/TodoList"))
-const MessageBubble = lazy(() => import("@/components/MessageBubble"))
-const UserListItem = lazy(() => import("@/components/UserListItem"))
-const EmptyChatState = lazy(() => import("@/components/EmptyChatState"))
+const TodoList = lazy(() => import("@/components/TodoList"));
+const MessageBubble = lazy(() => import("@/components/MessageBubble"));
+const UserListItem = lazy(() => import("@/components/UserListItem"));
+const EmptyChatState = lazy(() => import("@/components/EmptyChatState"));
 
 interface ChatUser {
-  id: string
-  username?: string
-  full_name?: string
-  avatar_url?: string
-  updated_at?: string
+  id: string;
+  username?: string;
+  full_name?: string;
+  avatar_url?: string;
+  updated_at?: string;
 }
 
 interface Message {
-  id: string
-  sender_id: string
-  receiver_id: string
-  content: string
-  created_at: string
-  is_read?: boolean
-  is_calendar_event?: boolean
+  id: string;
+  sender_id: string;
+  receiver_id: string;
+  content: string;
+  created_at: string;
+  is_read?: boolean;
+  is_calendar_event?: boolean;
 }
 
-export default function ResponsiveChatApp() {
-  const [currentUser, setCurrentUser] = useState<ChatUser | null>(null)
-  const [users, setUsers] = useState<ChatUser[]>([])
-  const [selectedUser, setSelectedUser] = useState<ChatUser | null>(null)
-  const [messages, setMessages] = useState<Message[]>([])
-  const [newMessage, setNewMessage] = useState("")
-  const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [loadingUsers, setLoadingUsers] = useState(false)
-  const [loadingMessages, setLoadingMessages] = useState(false)
-  const [sendingMessage, setSendingMessage] = useState(false)
-  const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set())
-  const [chatSearchTerm, setChatSearchTerm] = useState("")
-  const [activeTab, setActiveTab] = useState<"chats" | "todos">("chats")
-  const [showMobileChat, setShowMobileChat] = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const messagesContainerRef = useRef<HTMLDivElement>(null)
-  const [todoWidth, setTodoWidth] = useState(320)
-  const minTodoWidth = 240
-  const maxTodoWidth = 600
-  const sidebarRef = useRef<HTMLDivElement>(null)
-  const isResizing = useRef(false)
-  
-  // Memoized user data calculations
+const ResponsiveChatApp: React.FC = () => {
+  const [currentUser, setCurrentUser] = useState<ChatUser | null>(null);
+  const [users, setUsers] = useState<ChatUser[]>([]);
+  const [selectedUser, setSelectedUser] = useState<ChatUser | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [sendingMessage, setSendingMessage] = useState(false);
+  const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
+  const [chatSearchTerm, setChatSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState<"chats" | "todos">("chats");
+  const [showMobileChat, setShowMobileChat] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const [todoWidth, setTodoWidth] = useState(320);
+  const minTodoWidth = 240;
+  const maxTodoWidth = 600;
+  const sidebarRef = useRef<HTMLDivElement>(null);
+  const isResizing = useRef(false);
+
   const getInitials = useCallback((user: ChatUser) => {
     if (user.full_name) {
       return user.full_name
         .split(" ")
         .map((n) => n[0])
         .join("")
-        .toUpperCase()
+        .toUpperCase();
     }
-    return (user.username || user.id)[0].toUpperCase()
-  }, [])
+    return (user.username || user.id)[0].toUpperCase();
+  }, []);
 
   const getDisplayName = useCallback((user: ChatUser) => {
-    return user.full_name || user.username || user.id
-  }, [])
+    return user.full_name || user.username || user.id;
+  }, []);
 
-  // Debounced search terms
-  const debouncedSearchTerm = useDebounce(searchTerm, 300)
-  const debouncedChatSearchTerm = useDebounce(chatSearchTerm, 300)
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  const debouncedChatSearchTerm = useDebounce(chatSearchTerm, 300);
 
-  // Filter users with memoization
   const filteredUsers = useMemo(() => {
-    return users.filter((user) => getDisplayName(user).toLowerCase().includes(debouncedSearchTerm.toLowerCase()))
-  }, [users, debouncedSearchTerm, getDisplayName])
+    return users.filter((user) =>
+      getDisplayName(user).toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+    );
+  }, [users, debouncedSearchTerm, getDisplayName]);
 
-  // Filter messages based on chat search term
   const filteredMessages = useMemo(() => {
-    if (!debouncedChatSearchTerm) return messages
-    return messages.filter((message) => message.content.toLowerCase().includes(debouncedChatSearchTerm.toLowerCase()))
-  }, [messages, debouncedChatSearchTerm])
+    if (!debouncedChatSearchTerm) return messages;
+    return messages.filter((message) =>
+      message.content.toLowerCase().includes(debouncedChatSearchTerm.toLowerCase())
+    );
+  }, [messages, debouncedChatSearchTerm]);
 
-  // Real-time message subscription
   useEffect(() => {
-    if (!currentUser) return
+    if (!currentUser) return;
 
     const messagesSubscription = supabase
       .channel("all_messages")
@@ -100,178 +97,153 @@ export default function ResponsiveChatApp() {
           filter: `receiver_id=eq.${currentUser.id}`,
         },
         (payload) => {
-          const newMessage = payload.new as Message
+          const newMessage = payload.new as Message;
 
           if (payload.eventType === "INSERT") {
             setMessages((prev) => {
-              if (prev.some((m) => m.id === newMessage.id)) return prev
-              return [...prev, newMessage]
-            })
+              if (prev.some((m) => m.id === newMessage.id)) return prev;
+              return [...prev, newMessage];
+            });
 
             if (selectedUser?.id === newMessage.sender_id) {
-              markMessagesAsRead(newMessage.sender_id)
+              markMessagesAsRead(newMessage.sender_id);
             }
           } else if (payload.eventType === "UPDATE") {
-            setMessages((prev) => prev.map((m) => (m.id === newMessage.id ? newMessage : m)))
+            setMessages((prev) => prev.map((m) => (m.id === newMessage.id ? newMessage : m)));
           }
-        },
+        }
       )
-      .subscribe()
+      .subscribe();
 
     return () => {
-      supabase.removeChannel(messagesSubscription)
-    }
-  }, [currentUser, selectedUser])
+      supabase.removeChannel(messagesSubscription);
+    };
+  }, [currentUser, selectedUser]);
 
   useEffect(() => {
     const initializeApp = async () => {
-      setLoading(true)
-      
+      setLoading(true);
+
       try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-        if (sessionError) throw sessionError
-        
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+
         if (session?.user) {
-          const user = session.user
+          const user = session.user;
           const userData = {
             id: user.id,
             username: user.user_metadata?.username || user.email?.split("@")[0] || "user",
             full_name: user.user_metadata?.full_name,
             avatar_url: user.user_metadata?.avatar_url,
-          }
+          };
 
-          const [_, profilesResult] = await Promise.all([
-            // Get Google token (placeholder for future implementation)
-            Promise.resolve(null),
-            supabase.from("profiles").select("*").neq("id", user.id)
-          ])
+          setCurrentUser(userData);
+          await loadUsers();
 
-          if (profilesResult.error) throw profilesResult.error
-          
-          setCurrentUser(userData)
-          setUsers(profilesResult.data || [])
+          const { data: profiles, error: profilesError } = await supabase
+            .from("profiles")
+            .select("*")
+            .neq("id", user.id);
+
+          if (profilesError) throw profilesError;
+          setUsers(profiles || []);
         }
-      } catch (error: any) {
-        console.error("Initialization error:", error)
-        if (error?.message?.includes('auth') || error?.message?.includes('session')) {
-          console.log("Authentication issue detected")
-        }
+      } catch (error) {
+        console.error("Initialization error:", error);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    initializeApp()
+    initializeApp();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_IN" && session?.user) {
-        const user = session.user
+        const user = session.user;
         const userData = {
           id: user.id,
           username: user.user_metadata?.username || user.email?.split("@")[0] || "user",
           full_name: user.user_metadata?.full_name,
           avatar_url: user.user_metadata?.avatar_url,
-        }
-        
-        setCurrentUser(userData)
-        
-        try {
-          const { data: profiles, error: profileError } = await supabase
-            .from("profiles")
-            .select("*")
-            .neq("id", user.id)
-          
-          if (!profileError) {
-            setUsers(profiles || [])
-          }
-        } catch (error) {
-          console.error("Error loading users after sign in:", error)
-        }
+        };
+
+        setCurrentUser(userData);
+        await loadUsers();
       } else if (event === "SIGNED_OUT") {
-        setCurrentUser(null)
-        setUsers([])
+        setCurrentUser(null);
+        setUsers([]);
       }
-    })
+    });
 
     return () => {
-      subscription?.unsubscribe()
-    }
-  }, [])
+      subscription?.unsubscribe();
+    };
+  }, []);
 
-  // Load users with pagination
   const loadUsers = useCallback(async () => {
-    if (!currentUser?.id) return
+    if (!currentUser?.id) return;
 
-    setLoadingUsers(true)
+    setLoadingUsers(true);
     try {
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .neq("id", currentUser.id)
-        .order("full_name", { ascending: true })
+        .order("full_name", { ascending: true });
 
-      if (error) throw error
-      setUsers(data || [])
+      if (error) throw error;
+      setUsers(data || []);
     } catch (error) {
-      console.error("Failed to load users:", error)
+      console.error("Failed to load users:", error);
     } finally {
-      setLoadingUsers(false)
+      setLoadingUsers(false);
     }
-  }, [currentUser?.id])
+  }, [currentUser?.id]);
 
-  // Load messages with correct ordering
-  const loadMessages = useCallback(
-    async (userId: string) => {
-      if (!currentUser) return
+  const loadMessages = useCallback(async (userId: string) => {
+    if (!currentUser) return;
 
-      setLoadingMessages(true)
-      try {
-        const { data, error } = await supabase
-          .from("messages")
-          .select("*")
-          .or(
-            `and(sender_id.eq.${currentUser.id},receiver_id.eq.${userId}),and(sender_id.eq.${userId},receiver_id.eq.${currentUser.id})`,
-          )
-          .order("created_at", { ascending: true })
+    setLoadingMessages(true);
+    try {
+      const { data, error } = await supabase
+        .from("messages")
+        .select("*")
+        .or(
+          `and(sender_id.eq.${currentUser.id},receiver_id.eq.${userId}),and(sender_id.eq.${userId},receiver_id.eq.${currentUser.id})`
+        )
+        .order("created_at", { ascending: true });
 
-        if (error) throw error
-        setMessages(data || [])
-      } catch (error) {
-        console.error("Failed to load messages:", error)
-        setMessages([])
-      } finally {
-        setLoadingMessages(false)
+      if (error) throw error;
+      setMessages(data || []);
+    } catch (error) {
+      console.error("Failed to load messages:", error);
+      setMessages([]);
+    } finally {
+      setLoadingMessages(false);
+    }
+  }, [currentUser]);
+
+  const markMessagesAsRead = useCallback(async (senderId: string) => {
+    if (!currentUser) return;
+
+    try {
+      const { error } = await supabase
+        .from("messages")
+        .update({ is_read: true })
+        .eq("sender_id", senderId)
+        .eq("receiver_id", currentUser.id)
+        .eq("is_read", false);
+
+      if (error) {
+        console.error("Error marking messages as read:", error);
       }
-    },
-    [currentUser],
-  )
+    } catch (error) {
+      console.error("Failed to mark messages as read:", error);
+    }
+  }, [currentUser]);
 
-  // Mark messages as read
-  const markMessagesAsRead = useCallback(
-    async (senderId: string) => {
-      if (!currentUser) return
-
-      try {
-        const { error } = await supabase
-          .from("messages")
-          .update({ is_read: true })
-          .eq("sender_id", senderId)
-          .eq("receiver_id", currentUser.id)
-          .eq("is_read", false)
-
-        if (error) {
-          console.error("Error marking messages as read:", error)
-        }
-      } catch (error) {
-        console.error("Failed to mark messages as read:", error)
-      }
-    },
-    [currentUser],
-  )
-
-  // Message subscription for selected user
   useEffect(() => {
-    if (!currentUser || !selectedUser) return
+    if (!currentUser || !selectedUser) return;
 
     const channel = supabase
       .channel(`messages:${currentUser.id}:${selectedUser.id}`)
@@ -284,86 +256,81 @@ export default function ResponsiveChatApp() {
           filter: `or(and(sender_id.eq.${currentUser.id},receiver_id.eq.${selectedUser.id}),and(sender_id.eq.${selectedUser.id},receiver_id.eq.${currentUser.id}))`,
         },
         (payload) => {
-          const newMessage = payload.new as Message
+          const newMessage = payload.new as Message;
           setMessages((prev) => {
-            if (prev.some((msg) => msg.id === newMessage.id)) return prev
-            return [...prev, newMessage]
-          })
+            if (prev.some((msg) => msg.id === newMessage.id)) return prev;
+            return [...prev, newMessage];
+          });
 
           if (newMessage.sender_id === selectedUser.id) {
-            markMessagesAsRead(newMessage.sender_id)
+            markMessagesAsRead(newMessage.sender_id);
           }
-        },
+        }
       )
-      .subscribe()
+      .subscribe();
 
     return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [currentUser, selectedUser, markMessagesAsRead])
+      supabase.removeChannel(channel);
+    };
+  }, [currentUser, selectedUser, markMessagesAsRead]);
 
-  // Typing indicator subscription
   useEffect(() => {
-    if (!currentUser || !selectedUser) return
+    if (!currentUser || !selectedUser) return;
 
     const typingChannel = supabase
       .channel(`typing:${selectedUser.id}:${currentUser.id}`)
       .on("broadcast", { event: "typing" }, (payload) => {
         if (payload.payload?.userId && payload.payload.userId !== currentUser.id) {
-          setTypingUsers((prev) => new Set(prev).add(payload.payload.userId))
+          setTypingUsers((prev) => new Set(prev).add(payload.payload.userId));
           setTimeout(() => {
             setTypingUsers((prev) => {
-              const newSet = new Set(prev)
-              newSet.delete(payload.payload.userId)
-              return newSet
-            })
-          }, 2000)
+              const newSet = new Set(prev);
+              newSet.delete(payload.payload.userId);
+              return newSet;
+            });
+          }, 2000);
         }
       })
-      .subscribe()
+      .subscribe();
 
     return () => {
-      supabase.removeChannel(typingChannel)
-    }
-  }, [currentUser, selectedUser])
+      supabase.removeChannel(typingChannel);
+    };
+  }, [currentUser, selectedUser]);
 
-  // Load messages when user is selected
   useEffect(() => {
     if (selectedUser && currentUser) {
-      setMessages([])
-      loadMessages(selectedUser.id)
-      markMessagesAsRead(selectedUser.id)
-      setShowMobileChat(true)
+      setMessages([]);
+      loadMessages(selectedUser.id);
+      markMessagesAsRead(selectedUser.id);
+      setShowMobileChat(true);
     }
-  }, [selectedUser, currentUser, loadMessages, markMessagesAsRead])
+  }, [selectedUser, currentUser, loadMessages, markMessagesAsRead]);
 
-  // Auto scroll to bottom when messages change
   useEffect(() => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" })
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [filteredMessages])
+  }, [filteredMessages]);
 
-  // Handle typing indicator
   const handleTyping = useCallback(async () => {
-    if (!selectedUser || !currentUser) return
+    if (!selectedUser || !currentUser) return;
 
-    const typingChannel = supabase.channel(`typing:${currentUser.id}:${selectedUser.id}`)
-    await typingChannel.subscribe()
+    const typingChannel = supabase.channel(`typing:${currentUser.id}:${selectedUser.id}`);
+    await typingChannel.subscribe();
     typingChannel.send({
       type: "broadcast",
       event: "typing",
       payload: { userId: currentUser.id },
-    })
-  }, [selectedUser, currentUser])
+    });
+  }, [selectedUser, currentUser]);
 
-  // Fixed message sending function
   const sendMessage = useCallback(async () => {
-    const messageContent = newMessage.trim()
-    if (!messageContent || !selectedUser || !currentUser || sendingMessage) return
+    const messageContent = newMessage.trim();
+    if (!messageContent || !selectedUser || !currentUser || sendingMessage) return;
 
-    setSendingMessage(true)
-    const tempId = `temp_${Date.now()}_${Math.random()}`
+    setSendingMessage(true);
+    const tempId = `temp_${Date.now()}_${Math.random()}`;
 
     const optimisticMessage: Message = {
       id: tempId,
@@ -373,27 +340,27 @@ export default function ResponsiveChatApp() {
       created_at: new Date().toISOString(),
       is_read: false,
       is_calendar_event: true,
-    }
+    };
 
-    setMessages((prev) => [...prev, optimisticMessage])
-    setNewMessage("")
+    setMessages((prev) => [...prev, optimisticMessage]);
+    setNewMessage("");
 
     try {
       const cohere = new CohereClient({
         token: "8K8HLAByaR7Pd7ctj4kEwdha32Y0QId9EriGAU2V",
-      })
+      });
 
       const embed = await cohere.embed({
         texts: [messageContent],
         model: "embed-english-v3.0",
         inputType: "search_document",
-      })
+      });
 
       if (!embed?.embeddings || !Array.isArray(embed.embeddings)) {
-        throw new Error("Failed to generate embedding")
+        throw new Error("Failed to generate embedding");
       }
 
-      const embedding: number[] = embed.embeddings[0]
+      const embedding: number[] = embed.embeddings[0];
 
       const { data, error } = await supabase
         .from("messages")
@@ -406,66 +373,66 @@ export default function ResponsiveChatApp() {
           is_calendar_event: true,
         })
         .select()
-        .single()
+        .single();
 
-      if (error) throw error
+      if (error) throw error;
 
       if (data) {
-        setMessages((prev) => prev.map((msg) => (msg.id === tempId ? { ...data, is_read: false } : msg)))
+        setMessages((prev) => prev.map((msg) => (msg.id === tempId ? { ...data, is_read: false } : msg)));
       }
     } catch (error) {
-      console.error("Failed to send message:", error)
-      setMessages((prev) => prev.filter((msg) => msg.id !== tempId))
-      setNewMessage(messageContent)
+      console.error("Failed to send message:", error);
+      setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
+      setNewMessage(messageContent);
     } finally {
-      setSendingMessage(false)
+      setSendingMessage(false);
     }
-  }, [newMessage, selectedUser, currentUser, sendingMessage])
+  }, [newMessage, selectedUser, currentUser, sendingMessage]);
 
   const handleSignOut = useCallback(async () => {
     try {
-      await supabase.auth.signOut()
-      window.location.href = "/"
+      await supabase.auth.signOut();
+      window.location.href = "/";
     } catch (error) {
-      console.error("Error signing out:", error)
+      console.error("Error signing out:", error);
     }
-  }, [])
+  }, []);
 
   const clearChatSearch = useCallback(() => {
-    setChatSearchTerm("")
-  }, [])
+    setChatSearchTerm("");
+  }, []);
 
   const handleKeyPress = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault()
-        sendMessage()
+        e.preventDefault();
+        sendMessage();
       }
     },
-    [sendMessage],
-  )
+    [sendMessage]
+  );
 
   const handleBackToChats = useCallback(() => {
-    setShowMobileChat(false)
-    setSelectedUser(null)
-  }, [])
+    setShowMobileChat(false);
+    setSelectedUser(null);
+  }, []);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (!isResizing.current) return
-      const newWidth = window.innerWidth - e.clientX
-      setTodoWidth(Math.max(minTodoWidth, Math.min(maxTodoWidth, newWidth)))
-    }
+      if (!isResizing.current) return;
+      const newWidth = window.innerWidth - e.clientX;
+      setTodoWidth(Math.max(minTodoWidth, Math.min(maxTodoWidth, newWidth)));
+    };
     const handleMouseUp = () => {
-      isResizing.current = false
-    }
-    window.addEventListener("mousemove", handleMouseMove)
-    window.addEventListener("mouseup", handleMouseUp)
+      isResizing.current = false;
+    };
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
     return () => {
-      window.removeEventListener("mousemove", handleMouseMove)
-      window.removeEventListener("mouseup", handleMouseUp)
-    }
-  }, [])
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, []);
 
   if (loading) {
     return (
@@ -475,7 +442,7 @@ export default function ResponsiveChatApp() {
           <p className="text-slate-600 font-medium">Loading your workspace...</p>
         </div>
       </div>
-    )
+    );
   }
 
   if (!currentUser) {
@@ -495,7 +462,7 @@ export default function ResponsiveChatApp() {
           </button>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -595,8 +562,8 @@ export default function ResponsiveChatApp() {
                   messages={messages}
                   isSelected={selectedUser?.id === user.id}
                   onClick={() => {
-                    setSelectedUser(user)
-                    setActiveTab("chats")
+                    setSelectedUser(user);
+                    setActiveTab("chats");
                   }}
                   getInitials={getInitials}
                   getDisplayName={getDisplayName}
@@ -736,8 +703,8 @@ export default function ResponsiveChatApp() {
                   type="text"
                   value={newMessage}
                   onChange={(e) => {
-                    setNewMessage(e.target.value)
-                    handleTyping()
+                    setNewMessage(e.target.value);
+                    handleTyping();
                   }}
                   onKeyPress={handleKeyPress}
                   placeholder="Type your message..."
@@ -785,7 +752,7 @@ export default function ResponsiveChatApp() {
         </Suspense>
       </div>
     </div>
-  )
-}
+  );
+};
 
- 
+export default ResponsiveChatApp;

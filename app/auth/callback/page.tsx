@@ -5,6 +5,12 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/utils/supabase'
 import { Loader2 } from 'lucide-react'
 
+interface GoogleTokens {
+  provider_token: string;
+  provider_refresh_token: string | null;
+  expires_in: number | null;
+}
+
 export default function CallbackPage() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading')
   const [message, setMessage] = useState('')
@@ -64,10 +70,10 @@ export default function CallbackPage() {
           
           try {
             await storeGoogleTokens(data.user.id, {
-              provider_token,
-              provider_refresh_token,
-              expires_in: expires_in ? parseInt(expires_in) : null
-            })
+              provider_token: provider_token || '', // Ensure string (fallback empty string if null)
+              provider_refresh_token: provider_refresh_token || null, // Explicit null
+              expires_in: expires_in ? parseInt(expires_in) : null // Explicit null
+            });
             console.log('Google tokens stored successfully')
           } catch (tokenError) {
             console.error('Error storing Google tokens:', tokenError)
@@ -145,38 +151,37 @@ export default function CallbackPage() {
 
 // Helper function to store Google tokens
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function storeGoogleTokens(userId: string, tokens: any) {
-  if (!tokens.provider_token) return
+async function storeGoogleTokens(userId: string, tokens: GoogleTokens) {
+  if (!tokens.provider_token) return;
+
+  // Calculate expiry timestamp in milliseconds (as bigint)
+  const expiryDate = tokens.expires_in 
+    ? Date.now() + tokens.expires_in * 1000
+    : Date.now() + 3600 * 1000; // Default 1 hour if expires_in not provided
 
   const tokenData = {
     user_id: userId,
     access_token: tokens.provider_token,
-    refresh_token: tokens.provider_refresh_token,
+    refresh_token: tokens.provider_refresh_token || null,
+    expiry_date: expiryDate.toString(), // Convert to string for bigint field
     token_type: 'Bearer',
     scope: 'https://www.googleapis.com/auth/calendar',
-    expiry_date: tokens.expires_in 
-      ? new Date(Date.now() + tokens.expires_in * 1000).toISOString()
-      : null,
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
-  }
+  };
 
-  // First try to update existing tokens
-  const { error: updateError } = await supabase
-    .from('user_google_tokens')
-    .update(tokenData)
-    .eq('user_id', userId)
-
-  // If no existing tokens, insert new ones
-  if (updateError?.code === 'PGRST116') {
-    const { error: insertError } = await supabase
+  try {
+    // Upsert operation to handle both new and existing tokens
+    const { error } = await supabase
       .from('user_google_tokens')
-      .insert(tokenData)
+      .upsert(tokenData)
+      .eq('user_id', userId);
 
-    if (insertError) {
-      throw insertError
-    }
-  } else if (updateError) {
-    throw updateError
+    if (error) throw error;
+    
+    console.log('Google tokens stored/updated successfully');
+  } catch (error) {
+    console.error('Error storing Google tokens:', error);
+    throw error;
   }
 }
