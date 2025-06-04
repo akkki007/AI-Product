@@ -1,75 +1,57 @@
-import { PersonStanding } from 'lucide-react'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@radix-ui/react-dropdown-menu'
-import { Frame } from 'lucide-react'
-import Link from 'next/link'
-import React from 'react'
-import { Button } from './ui/button'
-import { ThemeToggle } from './theme-toggle'
+"use client"
 
-const Navbar = () => {
+import Link from "next/link"
+import { ThemeToggle } from "./theme-toggle"
+import { Button } from "./ui/button"
+
+export default function Navbar() {
   return (
-    <div>
-        <header className="border-b">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-2">
-            <Frame className="h-6 w-6" />
-            <Link href="/" className="text-xl font-bold">
-              Nexus
-            </Link>
-          </div>
-
-          <nav className="hidden md:flex items-center gap-6">
-            <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center gap-1 text-sm font-medium">
-                Pages
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-4 w-4"
-                >
-                  <path d="m6 9 6 6 6-6" />
-                </svg>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem>
-                  <Link href="/about">About</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Link href="/features">Features</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Link href="/pricing">Pricing</Link>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Link href="/blog" className="text-sm font-medium">
-              Blog
-            </Link>
-            <Link href="/contact" className="text-sm font-medium">
-              Contact
-            </Link>
-          </nav>
-
-          <div className="flex items-center gap-4">
-            <ThemeToggle />
-            <Link href="/authentication" className="hidden md:flex">
-            <Button className="hidden md:flex">
-              <PersonStanding className="mr-2 h-4 w-4" />
-              Start
-            </Button>
-            </Link>
-          </div>
+    <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container flex h-16 items-center">
+        <div className="mr-4 flex">
+          <Link href="/" className="flex items-center space-x-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-white">
+              <span className="font-bold">T</span>
+            </div>
+            <span className="font-bold text-xl hidden md:inline-block">Techonsy</span>
+          </Link>
         </div>
-      </header>
-    </div>
+        <nav className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
+          <div className="hidden md:flex items-center gap-6">
+            <Link
+              href="#features"
+              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Features
+            </Link>
+            <Link
+              href="#testimonials"
+              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Testimonials
+            </Link>
+            <Link
+              href="#pricing"
+              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              Pricing
+            </Link>
+            <Link
+              href="#faq"
+              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              FAQ
+            </Link>
+          </div>
+          <div className="flex items-center space-x-2">
+            <ThemeToggle />
+            <Button variant="ghost" size="sm" className="hidden md:flex">
+              Log in
+            </Button>
+            <Button size="sm">Get Started</Button>
+          </div>
+        </nav>
+      </div>
+    </header>
   )
 }
-
-export default Navbar

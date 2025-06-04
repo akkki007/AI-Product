@@ -28,17 +28,21 @@ interface TodoItemProps {
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  completed: "bg-green-100 text-green-700 border-green-200",
-  in_progress: "bg-blue-100 text-blue-700 border-blue-200",
-  cancelled: "bg-gray-100 text-gray-700 border-gray-200",
-  pending: "bg-orange-100 text-orange-700 border-orange-200",
+  completed:
+    "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800",
+  in_progress: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800",
+  cancelled: "bg-muted text-muted-foreground border-border",
+  pending:
+    "bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800",
 }
 
 const PRIORITY_STYLES: Record<string, string> = {
-  urgent: "bg-purple-100 text-purple-700 border-purple-200",
-  high: "bg-red-100 text-red-700 border-red-200",
-  medium: "bg-yellow-100 text-yellow-700 border-yellow-200",
-  low: "bg-green-100 text-green-700 border-green-200",
+  urgent:
+    "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-800",
+  high: "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800",
+  medium:
+    "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800",
+  low: "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800",
 }
 
 const PRIORITY_ICONS: Record<string, string> = {
@@ -135,10 +139,10 @@ const TodoItem = React.memo(function TodoItem({ task, onToggle, index }: TodoIte
       layout
       className={`p-4 rounded-xl border transition-all flex flex-col gap-3 ${
         isCompleted
-          ? "bg-slate-50 border-slate-200 opacity-75"
+          ? "bg-muted/50 border-border opacity-75"
           : isOverdue
-            ? "bg-red-50 border-red-200"
-            : "bg-white border-slate-200 hover:shadow-md"
+            ? "bg-red-50 dark:bg-red-950/50 border-red-200 dark:border-red-800"
+            : "bg-card border-border hover:shadow-md dark:hover:shadow-lg"
       }`}
       whileHover={{ y: -2, boxShadow: "0 8px 25px rgba(0,0,0,0.1)" }}
       initial={{ opacity: 0, y: 20 }}
@@ -151,7 +155,9 @@ const TodoItem = React.memo(function TodoItem({ task, onToggle, index }: TodoIte
             onClick={handleToggle}
             disabled={isUpdating}
             className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-              isCompleted ? "bg-green-500 border-green-500 text-white" : "border-slate-300 hover:border-blue-500"
+              isCompleted
+                ? "bg-green-500 border-green-500 text-white"
+                : "border-muted-foreground/30 hover:border-primary"
             }`}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
@@ -186,15 +192,15 @@ const TodoItem = React.memo(function TodoItem({ task, onToggle, index }: TodoIte
                 <input
                   type="text"
                   value={editContent}
-                  onChange={e => setEditContent(e.target.value)}
-                  className="w-full px-2 py-1 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onChange={(e) => setEditContent(e.target.value)}
+                  className="w-full px-2 py-1 border border-border rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   disabled={isUpdating}
                 />
                 <div className="flex gap-2">
                   <select
                     value={editPriority}
-                    onChange={e => setEditPriority(e.target.value as Task["priority"])}
-                    className="flex-1 px-2 py-1 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onChange={(e) => setEditPriority(e.target.value as Task["priority"])}
+                    className="flex-1 px-2 py-1 border border-border rounded text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                     disabled={isUpdating}
                   >
                     <option value="urgent">Urgent</option>
@@ -205,15 +211,15 @@ const TodoItem = React.memo(function TodoItem({ task, onToggle, index }: TodoIte
                   <input
                     type="date"
                     value={editDueDate}
-                    onChange={e => setEditDueDate(e.target.value)}
-                    className="flex-1 px-2 py-1 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    onChange={(e) => setEditDueDate(e.target.value)}
+                    className="flex-1 px-2 py-1 border border-border rounded text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                     disabled={isUpdating}
                   />
                 </div>
                 <textarea
                   value={editDescription}
-                  onChange={e => setEditDescription(e.target.value)}
-                  className="w-full px-2 py-1 border border-slate-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  className="w-full px-2 py-1 border border-border rounded text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                   rows={2}
                   placeholder="Description (optional)"
                   disabled={isUpdating}
@@ -221,14 +227,14 @@ const TodoItem = React.memo(function TodoItem({ task, onToggle, index }: TodoIte
                 <div className="flex gap-2 mt-2">
                   <button
                     onClick={handleSave}
-                    className="px-3 py-1 rounded bg-blue-600 text-white text-xs font-medium hover:bg-blue-700 disabled:opacity-50"
+                    className="px-3 py-1 rounded bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 disabled:opacity-50"
                     disabled={isUpdating || !editContent.trim()}
                   >
                     Save
                   </button>
                   <button
                     onClick={handleCancel}
-                    className="px-3 py-1 rounded bg-slate-200 text-slate-700 text-xs font-medium hover:bg-slate-300"
+                    className="px-3 py-1 rounded bg-muted text-muted-foreground text-xs font-medium hover:bg-muted/80"
                     disabled={isUpdating}
                   >
                     Cancel
@@ -237,10 +243,9 @@ const TodoItem = React.memo(function TodoItem({ task, onToggle, index }: TodoIte
               </div>
             ) : (
               <motion.span
-                className={`font-medium block ${isCompleted ? "line-through text-slate-500" : "text-slate-800"}`}
+                className={`font-medium block ${isCompleted ? "line-through text-muted-foreground" : "text-foreground"}`}
                 animate={{
                   textDecoration: isCompleted ? "line-through" : "none",
-                  color: isCompleted ? "#64748b" : "#1e293b",
                 }}
                 transition={{ duration: 0.3 }}
                 onClick={handleEdit}
@@ -253,7 +258,7 @@ const TodoItem = React.memo(function TodoItem({ task, onToggle, index }: TodoIte
 
             {!isEditing && task.reasoning && (
               <motion.p
-                className="text-xs text-slate-500 mt-1"
+                className="text-xs text-muted-foreground mt-1"
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 transition={{ delay: 0.1 }}
@@ -267,7 +272,7 @@ const TodoItem = React.memo(function TodoItem({ task, onToggle, index }: TodoIte
         <div className="flex flex-wrap gap-2">
           <motion.span
             className={`px-3 py-1 text-xs font-medium rounded-full border flex items-center gap-1 ${
-              PRIORITY_STYLES[task.priority] || "bg-slate-100 text-slate-700 border-slate-200"
+              PRIORITY_STYLES[task.priority] || "bg-muted text-muted-foreground border-border"
             }`}
             whileHover={{ scale: 1.05 }}
           >
@@ -277,7 +282,7 @@ const TodoItem = React.memo(function TodoItem({ task, onToggle, index }: TodoIte
 
           <motion.span
             className={`px-3 py-1 text-xs font-medium rounded-full ${
-              STATUS_STYLES[task.status] || "bg-slate-100 text-slate-700"
+              STATUS_STYLES[task.status] || "bg-muted text-muted-foreground"
             }`}
             whileHover={{ scale: 1.05 }}
           >
@@ -287,7 +292,7 @@ const TodoItem = React.memo(function TodoItem({ task, onToggle, index }: TodoIte
       </div>
 
       <motion.div
-        className="flex flex-wrap gap-4 text-xs text-slate-500"
+        className="flex flex-wrap gap-4 text-xs text-muted-foreground"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.2 }}
@@ -306,8 +311,9 @@ const TodoItem = React.memo(function TodoItem({ task, onToggle, index }: TodoIte
 
         {task.due_date && (
           <motion.div
-            className={`flex items-center gap-1 ${isOverdue ? "text-red-600" : ""}`}
-            animate={{ color: isOverdue ? "#dc2626" : "#64748b" }}
+            className={`flex items-center gap-1 ${
+              isOverdue ? "text-red-600 dark:text-red-400" : "text-muted-foreground"
+            }`}
           >
             <Clock className="w-3 h-3" />
             <span>Due {new Date(task.due_date).toLocaleDateString()}</span>
@@ -318,11 +324,11 @@ const TodoItem = React.memo(function TodoItem({ task, onToggle, index }: TodoIte
 
       {!isEditing && task.description && (
         <motion.details className="mt-2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}>
-          <summary className="cursor-pointer text-xs text-blue-600 hover:text-blue-700 transition-colors">
+          <summary className="cursor-pointer text-xs text-primary hover:text-primary/80 transition-colors">
             Description
           </summary>
           <motion.div
-            className="text-xs text-slate-600 mt-2 p-2 bg-slate-50 rounded-lg"
+            className="text-xs text-muted-foreground mt-2 p-2 bg-muted rounded-lg"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             transition={{ duration: 0.2 }}
@@ -342,18 +348,18 @@ const LoadingSkeleton = () => (
     {[...Array(3)].map((_, i) => (
       <motion.div
         key={i}
-        className="p-4 rounded-xl border border-slate-200 bg-white"
+        className="p-4 rounded-xl border border-border bg-card"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: i * 0.1 }}
       >
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-6 h-6 bg-slate-200 rounded-full animate-pulse" />
-          <div className="h-4 bg-slate-200 rounded animate-pulse flex-1" />
+          <div className="w-6 h-6 bg-muted rounded-full animate-pulse" />
+          <div className="h-4 bg-muted rounded animate-pulse flex-1" />
         </div>
         <div className="flex gap-2">
-          <div className="h-6 w-16 bg-slate-200 rounded-full animate-pulse" />
-          <div className="h-6 w-20 bg-slate-200 rounded-full animate-pulse" />
+          <div className="h-6 w-16 bg-muted rounded-full animate-pulse" />
+          <div className="h-6 w-20 bg-muted rounded-full animate-pulse" />
         </div>
       </motion.div>
     ))}
@@ -523,22 +529,22 @@ const TodoList: React.FC = () => {
   if (loading) {
     return (
       <motion.div className="flex flex-col h-full" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-        <div className="p-6 border-b border-slate-200">
+        <div className="p-6 border-b border-border">
           <div className="flex items-center justify-between mb-4">
-            <div className="h-6 w-24 bg-slate-200 rounded animate-pulse" />
+            <div className="h-6 w-24 bg-muted rounded animate-pulse" />
             <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-slate-200 rounded-full animate-pulse" />
-              <div className="h-4 w-8 bg-slate-200 rounded animate-pulse" />
+              <div className="w-2 h-2 bg-muted rounded-full animate-pulse" />
+              <div className="h-4 w-8 bg-muted rounded animate-pulse" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="bg-slate-100 p-3 rounded-lg">
-              <div className="h-3 w-16 bg-slate-200 rounded animate-pulse mb-2" />
-              <div className="h-6 w-8 bg-slate-200 rounded animate-pulse" />
+            <div className="bg-muted p-3 rounded-lg">
+              <div className="h-3 w-16 bg-muted-foreground/20 rounded animate-pulse mb-2" />
+              <div className="h-6 w-8 bg-muted-foreground/20 rounded animate-pulse" />
             </div>
-            <div className="bg-slate-100 p-3 rounded-lg">
-              <div className="h-3 w-12 bg-slate-200 rounded animate-pulse mb-2" />
-              <div className="h-6 w-8 bg-slate-200 rounded animate-pulse" />
+            <div className="bg-muted p-3 rounded-lg">
+              <div className="h-3 w-12 bg-muted-foreground/20 rounded animate-pulse mb-2" />
+              <div className="h-6 w-8 bg-muted-foreground/20 rounded animate-pulse" />
             </div>
           </div>
         </div>
@@ -556,12 +562,12 @@ const TodoList: React.FC = () => {
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
       >
-        <motion.div className="text-red-500 text-center" initial={{ y: 20 }} animate={{ y: 0 }}>
+        <motion.div className="text-destructive text-center" initial={{ y: 20 }} animate={{ y: 0 }}>
           <AlertTriangle className="w-12 h-12 mx-auto mb-4" />
           <p className="mb-4 font-medium">⚠️ {error}</p>
           <motion.button
             onClick={() => window.location.reload()}
-            className="text-blue-500 hover:underline font-medium"
+            className="text-primary hover:text-primary/80 font-medium"
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
@@ -573,22 +579,18 @@ const TodoList: React.FC = () => {
   }
 
   return (
-    <motion.div
-      className="flex flex-col h-full bg-white"
-      variants={containerVariants}
-      animate="visible"
-    >
+    <motion.div className="flex flex-col h-full bg-card" variants={containerVariants} animate="visible">
       {/* Header */}
-      <motion.div className="p-6 border-b border-slate-200" variants={itemVariants}>
+      <motion.div className="p-6 border-b border-border" variants={itemVariants}>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-slate-800">My Tasks</h2>
+          <h2 className="text-xl font-bold text-foreground">My Tasks</h2>
           <div className="flex items-center space-x-2">
             <motion.div
               className="w-2 h-2 bg-green-500 rounded-full"
               animate={{ scale: [1, 1.2, 1] }}
               transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
             />
-            <span className="text-xs text-green-600 font-medium">LIVE</span>
+            <span className="text-xs text-green-600 dark:text-green-400 font-medium">LIVE</span>
           </div>
         </div>
 
@@ -596,13 +598,21 @@ const TodoList: React.FC = () => {
         <div className="flex flex-wrap gap-2 items-center mt-2 mb-4">
           {/* Layout Toggle */}
           <button
-            className={`px-2 py-1 rounded border text-xs ${layout === "list" ? "bg-blue-100 border-blue-300" : "border-slate-200"}`}
+            className={`px-2 py-1 rounded border text-xs transition-colors ${
+              layout === "list"
+                ? "bg-primary/10 border-primary/30 text-primary"
+                : "border-border text-muted-foreground hover:text-foreground"
+            }`}
             onClick={() => setLayout("list")}
           >
             List
           </button>
           <button
-            className={`px-2 py-1 rounded border text-xs ${layout === "grid" ? "bg-blue-100 border-blue-300" : "border-slate-200"}`}
+            className={`px-2 py-1 rounded border text-xs transition-colors ${
+              layout === "grid"
+                ? "bg-primary/10 border-primary/30 text-primary"
+                : "border-border text-muted-foreground hover:text-foreground"
+            }`}
             onClick={() => setLayout("grid")}
           >
             Grid
@@ -610,9 +620,9 @@ const TodoList: React.FC = () => {
 
           {/* Sort */}
           <select
-            className="ml-2 px-2 py-1 border rounded text-xs"
+            className="ml-2 px-2 py-1 border border-border rounded text-xs bg-background text-foreground"
             value={sortBy}
-            onChange={e => setSortBy(e.target.value)}
+            onChange={(e) => setSortBy(e.target.value)}
           >
             <option value="created_at">Sort by Created</option>
             <option value="due_date">Sort by Due Date</option>
@@ -622,9 +632,9 @@ const TodoList: React.FC = () => {
 
           {/* Priority Filter */}
           <select
-            className="ml-2 px-2 py-1 border rounded text-xs"
+            className="ml-2 px-2 py-1 border border-border rounded text-xs bg-background text-foreground"
             value={priorityFilter}
-            onChange={e => setPriorityFilter(e.target.value)}
+            onChange={(e) => setPriorityFilter(e.target.value)}
           >
             <option value="">All Priorities</option>
             <option value="urgent">Urgent</option>
@@ -636,10 +646,10 @@ const TodoList: React.FC = () => {
 
         {/* Stats */}
         <div className="grid grid-cols-2 gap-3 mb-4">
-          <motion.div className="bg-blue-50 p-3 rounded-lg" whileHover={{ scale: 1.02 }}>
-            <p className="text-xs text-blue-600 font-medium">COMPLETED</p>
+          <motion.div className="bg-blue-50 dark:bg-blue-950/30 p-3 rounded-lg" whileHover={{ scale: 1.02 }}>
+            <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">COMPLETED</p>
             <motion.p
-              className="text-lg font-bold text-blue-700"
+              className="text-lg font-bold text-blue-700 dark:text-blue-300"
               key={taskStats.completed}
               initial={{ scale: 1.2 }}
               animate={{ scale: 1 }}
@@ -648,10 +658,10 @@ const TodoList: React.FC = () => {
               {taskStats.completed}
             </motion.p>
           </motion.div>
-          <motion.div className="bg-orange-50 p-3 rounded-lg" whileHover={{ scale: 1.02 }}>
-            <p className="text-xs text-orange-600 font-medium">PENDING</p>
+          <motion.div className="bg-orange-50 dark:bg-orange-950/30 p-3 rounded-lg" whileHover={{ scale: 1.02 }}>
+            <p className="text-xs text-orange-600 dark:text-orange-400 font-medium">PENDING</p>
             <motion.p
-              className="text-lg font-bold text-orange-700"
+              className="text-lg font-bold text-orange-700 dark:text-orange-300"
               key={taskStats.pending}
               initial={{ scale: 1.2 }}
               animate={{ scale: 1 }}
@@ -665,18 +675,18 @@ const TodoList: React.FC = () => {
         <AnimatePresence>
           {taskStats.overdue > 0 && (
             <motion.div
-              className="bg-red-50 p-3 rounded-lg border border-red-200"
+              className="bg-red-50 dark:bg-red-950/30 p-3 rounded-lg border border-red-200 dark:border-red-800"
               initial={{ opacity: 0, height: 0, marginTop: 0 }}
               animate={{ opacity: 1, height: "auto", marginTop: 12 }}
               exit={{ opacity: 0, height: 0, marginTop: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <p className="text-xs text-red-600 font-medium flex items-center gap-1">
+              <p className="text-xs text-red-600 dark:text-red-400 font-medium flex items-center gap-1">
                 <AlertTriangle className="w-3 h-3" />
                 OVERDUE TASKS
               </p>
               <motion.p
-                className="text-lg font-bold text-red-700"
+                className="text-lg font-bold text-red-700 dark:text-red-300"
                 key={taskStats.overdue}
                 initial={{ scale: 1.2 }}
                 animate={{ scale: 1 }}
@@ -689,13 +699,15 @@ const TodoList: React.FC = () => {
         </AnimatePresence>
 
         {/* Filter Tabs */}
-        <div className="flex space-x-1 bg-slate-100 p-1 rounded-lg mt-4">
+        <div className="flex space-x-1 bg-muted p-1 rounded-lg mt-4">
           {["all", "pending", "completed", "overdue"].map((filterType) => (
             <motion.button
               key={filterType}
               onClick={() => setFilter(filterType as any)}
               className={`flex-1 py-2 px-3 rounded-md text-xs font-medium transition-colors ${
-                filter === filterType ? "bg-white text-slate-800 shadow-sm" : "text-slate-600 hover:text-slate-800"
+                filter === filterType
+                  ? "bg-background text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -727,12 +739,12 @@ const TodoList: React.FC = () => {
                   ease: "easeInOut",
                 }}
               >
-                <Calendar className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                <Calendar className="w-16 h-16 text-muted-foreground/50 mx-auto mb-4" />
               </motion.div>
-              <p className="text-slate-500 text-lg font-medium">
+              <p className="text-muted-foreground text-lg font-medium">
                 {filter === "all" ? "No tasks assigned yet" : `No ${filter} tasks`}
               </p>
-              <p className="text-slate-400 text-sm mt-1">
+              <p className="text-muted-foreground/70 text-sm mt-1">
                 {filter === "all"
                   ? "Tasks extracted from your messages will appear here"
                   : `Switch to "all" to see other tasks`}
@@ -761,18 +773,18 @@ const TodoList: React.FC = () => {
       <AnimatePresence>
         {tasks.length > 0 && (
           <motion.div
-            className="p-4 border-t border-slate-200 bg-slate-50"
+            className="p-4 border-t border-border bg-muted/30"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
           >
             <div className="text-center">
-              <motion.p className="text-sm text-slate-600" key={`${taskStats.completed}-${taskStats.total}`}>
+              <motion.p className="text-sm text-muted-foreground" key={`${taskStats.completed}-${taskStats.total}`}>
                 {taskStats.completed} of {taskStats.total} tasks completed
               </motion.p>
-              <div className="w-full bg-slate-200 rounded-full h-2 mt-2 overflow-hidden">
+              <div className="w-full bg-muted rounded-full h-2 mt-2 overflow-hidden">
                 <motion.div
-                  className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full"
+                  className="bg-gradient-to-r from-primary to-primary/80 h-2 rounded-full"
                   initial={{ width: 0 }}
                   animate={{
                     width: `${taskStats.total > 0 ? (taskStats.completed / taskStats.total) * 100 : 0}%`,

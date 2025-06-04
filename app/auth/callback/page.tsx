@@ -34,7 +34,7 @@ export default function CallbackPage() {
           console.error('OAuth error:', error, error_description)
           setStatus('error')
           setMessage(`Authentication failed: ${error_description || error}`)
-          setTimeout(() => router.push('/login'), 3000)
+          setTimeout(() => router.push('/authentication'), 3000)
           return
         }
 
@@ -42,7 +42,7 @@ export default function CallbackPage() {
           console.error('No access token found')
           setStatus('error')
           setMessage('No access token received')
-          setTimeout(() => router.push('/login'), 3000)
+          setTimeout(() => router.push('/authentication'), 3000)
           return
         }
 
@@ -58,7 +58,7 @@ export default function CallbackPage() {
           console.error('Error setting session:', sessionError)
           setStatus('error')
           setMessage('Failed to establish session')
-          setTimeout(() => router.push('/login'), 3000)
+          setTimeout(() => router.push('/authentication'), 3000)
           return
         }
 
@@ -92,7 +92,7 @@ export default function CallbackPage() {
         console.error('Callback error:', error)
         setStatus('error')
         setMessage('Unexpected error occurred')
-        setTimeout(() => router.push('/login'), 3000)
+        setTimeout(() => router.push('/authentication'), 3000)
       }
     }
 

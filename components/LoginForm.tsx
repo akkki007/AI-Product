@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Eye, EyeOff, Mail, Lock, Loader2 } from "lucide-react"
-
+import "../app/globals.css"
 export default function LoginForm() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -135,7 +135,7 @@ export default function LoginForm() {
   return (
     <div className="w-full max-w-md space-y-6">
       <div className="text-center space-y-2">
-        <h2 className="text-2xl font-bold text-gray-900">Welcome back</h2>
+        <h2 className="text-2xl font-bold dark:text-blue-400 text-gray-900">Welcome back</h2>
         <p className="text-sm text-gray-600">Sign in to your account to continue</p>
       </div>
 
@@ -227,7 +227,7 @@ export default function LoginForm() {
             <div className="w-full border-t border-gray-300" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-500">Or continue with</span>
+            <span className="px-2 bg-white dark:bg-black text-gray-500">Or continue with</span>
           </div>
         </div>
 
