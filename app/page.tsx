@@ -106,10 +106,7 @@ export default function LandingPage() {
       >
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-2 font-bold">
-            <div className="size-8 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-primary-foreground">
-              S
-            </div>
-            <span>Techonsy</span>
+            <Image src={"/techonsylogo.png"} alt="Techonsy Logo" width={100} height={32} className="h-8 w-32" />
           </div>
           <nav className="hidden md:flex gap-8">
             <Link
@@ -249,7 +246,7 @@ export default function LandingPage() {
             >
                 <div className="rounded-xl overflow-hidden shadow-2xl border border-border/40 bg-gradient-to-b from-background to-muted/20">
                 <Image
-                  src="/dashboard-preview.png"
+                  src="/chat_preview.png"
                   width={1280}
                   height={720}
                   alt="Techonsy dashboard"
@@ -273,11 +270,11 @@ export default function LandingPage() {
                 {[1, 2, 3, 4, 5].map((i) => (
                   <Image
                     key={i}
-                    src={`/placeholder-logo.svg`}
+                    src={`/linklogo.png`}
                     alt={`Company logo ${i}`}
                     width={120}
                     height={60}
-                    className="h-8 w-auto opacity-70 grayscale transition-all hover:opacity-100 hover:grayscale-0"
+                    className="h-15 w-auto opacity-70 grayscale transition-all hover:opacity-100 hover:grayscale-0"
                   />
                 ))}
               </div>
