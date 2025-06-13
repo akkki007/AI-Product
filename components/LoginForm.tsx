@@ -105,17 +105,23 @@ export default function LoginForm() {
 
     try {
       const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          // Add calendar scopes
-          scopes: 'https://www.googleapis.com/auth/calendar',
-          redirectTo: `${window.location.origin}/auth/callback`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent' // This ensures we get a refresh token
-          }
-        }
-      })
+  provider: 'google',
+  options: {
+    scopes: [
+      'https://www.googleapis.com/auth/calendar',
+      'https://www.googleapis.com/auth/calendar.events',
+      'https://www.googleapis.com/auth/calendar.events.readonly',
+      'https://www.googleapis.com/auth/meetings.space.created',   // Manage Meet meetings created by the user
+      'https://www.googleapis.com/auth/meetings.space.readonly'   // Read-only access to user's created Meet meetings
+    ].join(' '),
+    redirectTo: `${window.location.origin}/auth/callback`,
+    queryParams: {
+      access_type: 'offline',
+      prompt: 'consent' // Ensures refresh token is returned
+    }
+  }
+});
+
 
       if (error) throw error
 

@@ -45,9 +45,11 @@ export default function Navbar() {
           </div>
           <div className="flex items-center space-x-2">
             <ThemeToggle />
+            <Link href="/authentication" className="hidden md:inline-block">
             <Button variant="ghost" size="sm" className="hidden md:flex">
               Log in
             </Button>
+            </Link>
             <Button size="sm">Get Started</Button>
           </div>
         </nav>

@@ -9,6 +9,7 @@ interface GoogleTokens {
   provider_token: string;
   provider_refresh_token: string | null;
   expires_in: number | null;
+  scope?: string; // Add scope to interface
 }
 
 export default function CallbackPage() {
@@ -26,6 +27,7 @@ export default function CallbackPage() {
         const provider_token = hashParams.get('provider_token')
         const provider_refresh_token = hashParams.get('provider_refresh_token')
         const expires_in = hashParams.get('expires_in')
+        const scope = hashParams.get('scope') // Get the actual granted scope
         const error = hashParams.get('error')
         const error_description = hashParams.get('error_description')
 
@@ -66,13 +68,14 @@ export default function CallbackPage() {
         
         // Store Google tokens if available
         if (provider_token && data.user) {
-          console.log(data.user.id);
+          console.log('User ID:', data.user.id);
           
           try {
             await storeGoogleTokens(data.user.id, {
-              provider_token: provider_token || '', // Ensure string (fallback empty string if null)
-              provider_refresh_token: provider_refresh_token || null, // Explicit null
-              expires_in: expires_in ? parseInt(expires_in) : null // Explicit null
+              provider_token: provider_token || '',
+              provider_refresh_token: provider_refresh_token || null,
+              expires_in: expires_in ? parseInt(expires_in) : null,
+              scope: scope || '' // Pass the actual scope
             });
             console.log('Google tokens stored successfully')
           } catch (tokenError) {
@@ -150,7 +153,6 @@ export default function CallbackPage() {
 }
 
 // Helper function to store Google tokens
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function storeGoogleTokens(userId: string, tokens: GoogleTokens) {
   if (!tokens.provider_token) return;
 
@@ -159,27 +161,67 @@ async function storeGoogleTokens(userId: string, tokens: GoogleTokens) {
     ? Date.now() + tokens.expires_in * 1000
     : Date.now() + 3600 * 1000; // Default 1 hour if expires_in not provided
 
+  // Define comprehensive Google Meet scopes
+  const meetScopes = [
+    'https://www.googleapis.com/auth/calendar',
+    'https://www.googleapis.com/auth/calendar.events',
+    'https://www.googleapis.com/auth/calendar.readonly',
+    'https://www.googleapis.com/auth/meetings.space.created',
+    'https://www.googleapis.com/auth/meetings.space.readonly',
+    'openid',
+    'profile',
+    'email'
+  ].join(' ');
+
   const tokenData = {
     user_id: userId,
     access_token: tokens.provider_token,
     refresh_token: tokens.provider_refresh_token || null,
     expiry_date: expiryDate.toString(), // Convert to string for bigint field
     token_type: 'Bearer',
-    scope: 'https://www.googleapis.com/auth/calendar',
+    scope: tokens.scope || meetScopes, // Use actual granted scope or fallback to required scopes
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
 
   try {
-    // Upsert operation to handle both new and existing tokens
-    const { error } = await supabase
+    // First, try to update existing record
+    const { data: existingData, error: selectError } = await supabase
       .from('user_google_tokens')
-      .upsert(tokenData)
-      .eq('user_id', userId);
+      .select('id')
+      .eq('user_id', userId)
+      .single();
 
-    if (error) throw error;
+    if (selectError && selectError.code !== 'PGRST116') {
+      // PGRST116 is "not found" error, which is expected for new users
+      throw selectError;
+    }
+
+    if (existingData) {
+      // Update existing record
+      const { error } = await supabase
+        .from('user_google_tokens')
+        .update({
+          access_token: tokenData.access_token,
+          refresh_token: tokenData.refresh_token,
+          expiry_date: tokenData.expiry_date,
+          scope: tokenData.scope,
+          updated_at: tokenData.updated_at
+        })
+        .eq('user_id', userId);
+
+      if (error) throw error;
+    } else {
+      // Insert new record
+      const { error } = await supabase
+        .from('user_google_tokens')
+        .insert(tokenData);
+
+      if (error) throw error;
+    }
     
     console.log('Google tokens stored/updated successfully');
+    console.log('Granted scopes:', tokens.scope);
   } catch (error) {
     console.error('Error storing Google tokens:', error);
     throw error;

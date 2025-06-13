@@ -179,13 +179,15 @@ export default function LandingPage() {
                 FAQ
               </Link>
               <div className="flex flex-col gap-2 pt-2 border-t">
-                <Link href="#" className="py-2 text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
+                <Link href="/authentication" className="py-2 text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
                   Log in
                 </Link>
+                <Link href="/authentication" className="py-2 text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
                 <Button className="rounded-full">
                   Get Started
                   <ChevronRight className="ml-1 size-4" />
                 </Button>
+                </Link>
               </div>
             </div>
           </motion.div>
