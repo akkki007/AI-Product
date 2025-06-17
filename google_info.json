@@ -1,8 +1,0 @@
-{"web":{"client_id":"36359816132-dv425p06qaqg86dq6b87iqjhl6hn50di.apps.googleusercontent.com",
-"project_id":"ai-techonsy",
-"auth_uri":"https://accounts.google.com/o/oauth2/auth",
-"token_uri":"https://oauth2.googleapis.com/token",
-"auth_provider_x509_cert_url":"https://www.googleapis.com/oauth2/v1/certs",
-"client_secret":"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"
-,"redirect_uris":["https://ai.techonsy.com/auth/callback"
-,"https://anxhpmvpzlvlkylttzub.supabase.co/auth/v1/callback"],"javascript_origins":["https://ai.techonsy.com"]}}
