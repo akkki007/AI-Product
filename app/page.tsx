@@ -128,10 +128,10 @@ export default function LandingPage() {
               Pricing
             </Link>
             <Link
-              href="#faq"
+              href="/privacy-policy"
               className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
-              FAQ
+              Privacy Policy
             </Link>
           </nav>
           <div className="hidden md:flex gap-4 items-center">
@@ -175,8 +175,8 @@ export default function LandingPage() {
               <Link href="#pricing" className="py-2 text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
                 Pricing
               </Link>
-              <Link href="#faq" className="py-2 text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
-                FAQ
+              <Link href="/privacy-policy" className="py-2 text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>
+                Privacy Policy
               </Link>
               <div className="flex flex-col gap-2 pt-2 border-t">
                 <Link href="/authentication" className="py-2 text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>

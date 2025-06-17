@@ -40,8 +40,9 @@ export default function Navbar() {
               href="#faq"
               className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
-              FAQ
+              Privacy-Policy
             </Link>
+            
           </div>
           <div className="flex items-center space-x-2">
             <ThemeToggle />
