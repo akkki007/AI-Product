@@ -216,11 +216,11 @@ const PrivacyPolicy = () => {
               <div>
                 <h4 className="font-semibold text-gray-900 mb-3">Email Support</h4>
                 <a
-                  href="mailto:privacy@example.com"
+                  href="mailto:aniket@techonsy.com"
                   className="text-blue-600 hover:text-blue-800 transition-colors duration-200 flex items-center"
                 >
                   <Mail className="h-4 w-4 mr-2" />
-                  privacy@example.com
+                  aniket@techonsy.com
                 </a>
               </div>
               <div>
