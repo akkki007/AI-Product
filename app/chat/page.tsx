@@ -297,36 +297,59 @@ const ResponsiveChatApp: React.FC = () => {
   )
 
   useEffect(() => {
-    if (!currentUser || !selectedUser) return
+  if (!currentUser || !selectedUser) return
 
-    const channel = supabase
-      .channel(`messages:${currentUser.id}:${selectedUser.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `or(and(sender_id.eq.${currentUser.id},receiver_id.eq.${selectedUser.id}),and(sender_id.eq.${selectedUser.id},receiver_id.eq.${currentUser.id}))`,
-        },
-        (payload) => {
-          const newMessage = payload.new as Message
-          setMessages((prev) => {
-            if (prev.some((msg) => msg.id === newMessage.id)) return prev
-            return [...prev, newMessage]
-          })
-
-          if (newMessage.sender_id === selectedUser.id) {
-            markMessagesAsRead(newMessage.sender_id)
+  const channel = supabase
+    .channel(`messages:${currentUser.id}:${selectedUser.id}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "messages",
+        filter: `or(and(sender_id.eq.${currentUser.id},receiver_id.eq.${selectedUser.id}),and(sender_id.eq.${selectedUser.id},receiver_id.eq.${currentUser.id}))`,
+      },
+      (payload) => {
+        const newMessage = payload.new as Message
+        
+        setMessages((prev) => {
+          // Check if message already exists (including optimistic messages)
+          const existingMessage = prev.find(msg => 
+            msg.id === newMessage.id || 
+            (msg.is_optimistic && msg.content === newMessage.content && 
+             msg.sender_id === newMessage.sender_id && 
+             Math.abs(new Date(msg.created_at).getTime() - new Date(newMessage.created_at).getTime()) < 5000)
+          )
+          
+          if (existingMessage) {
+            // Replace optimistic message with real one
+            if (existingMessage.is_optimistic) {
+              return prev.map(msg => 
+                msg.id === existingMessage.id 
+                  ? { ...newMessage, is_optimistic: false }
+                  : msg
+              )
+            }
+            // Message already exists, don't duplicate
+            return prev
           }
-        },
-      )
-      .subscribe()
+          
+          // New message, add it
+          return [...prev, newMessage]
+        })
 
-    return () => {
-      supabase.removeChannel(channel)
-    }
-  }, [currentUser, selectedUser, markMessagesAsRead])
+        // Mark as read if it's from the selected user
+        if (newMessage.sender_id === selectedUser.id) {
+          markMessagesAsRead(newMessage.sender_id)
+        }
+      }
+    )
+    .subscribe()
+
+  return () => {
+    supabase.removeChannel(channel)
+  }
+}, [currentUser, selectedUser, markMessagesAsRead])
 
   useEffect(() => {
     if (!currentUser || !selectedUser) return
