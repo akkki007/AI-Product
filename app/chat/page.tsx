@@ -126,42 +126,7 @@ const ResponsiveChatApp: React.FC = () => {
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [chatSearchTerm, searchTerm])
 
-  useEffect(() => {
-    if (!currentUser) return
-
-    const messagesSubscription = supabase
-      .channel("all_messages")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "messages",
-          filter: `receiver_id=eq.${currentUser.id}`,
-        },
-        (payload) => {
-          const newMessage = payload.new as Message
-
-          if (payload.eventType === "INSERT") {
-            setMessages((prev) => {
-              if (prev.some((m) => m.id === newMessage.id)) return prev
-              return [...prev, newMessage]
-            })
-
-            if (selectedUser?.id === newMessage.sender_id) {
-              markMessagesAsRead(newMessage.sender_id)
-            }
-          } else if (payload.eventType === "UPDATE") {
-            setMessages((prev) => prev.map((m) => (m.id === newMessage.id ? newMessage : m)))
-          }
-        },
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(messagesSubscription)
-    }
-  }, [currentUser, selectedUser])
+  
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -415,78 +380,75 @@ const ResponsiveChatApp: React.FC = () => {
     }, 1000)
   }, [selectedUser, currentUser, isTyping])
 
-  const sendMessage = useCallback(async () => {
-    const messageContent = newMessage.trim()
-    if (!messageContent || !selectedUser || !currentUser || sendingMessage) return
+ const sendMessage = useCallback(async () => {
+  const messageContent = newMessage.trim()
+  if (!messageContent || !selectedUser || !currentUser || sendingMessage) return
 
-    setSendingMessage(true)
-    const tempId = `temp_${Date.now()}_${Math.random()}`
+  setSendingMessage(true)
+  const tempId = `temp_${Date.now()}_${Math.random()}`
 
-    // Optimistic UI update
-    const optimisticMessage: Message = {
-      id: tempId,
-      sender_id: currentUser.id,
-      receiver_id: selectedUser.id,
-      content: messageContent,
-      created_at: new Date().toISOString(),
-      is_read: false,
-      is_calendar_event: false,
-      is_optimistic: true,
+  // Optimistic UI update
+  const optimisticMessage: Message = {
+    id: tempId,
+    sender_id: currentUser.id,
+    receiver_id: selectedUser.id,
+    content: messageContent,
+    created_at: new Date().toISOString(),
+    is_read: false,
+    is_calendar_event: false,
+    is_optimistic: true,
+  }
+
+  setMessages((prev) => [...prev, optimisticMessage])
+  setNewMessage("")
+
+  try {
+    const cohere = new CohereClient({
+      token: "8K8HLAByaR7Pd7ctj4kEwdha32Y0QId9EriGAU2V",
+    })
+
+    const embed = await cohere.embed({
+      texts: [messageContent],
+      model: "embed-english-v3.0",
+      inputType: "search_document",
+    })
+
+    if (!embed?.embeddings || !Array.isArray(embed.embeddings)) {
+      throw new Error("Failed to generate embedding")
     }
 
-    setMessages((prev) => [...prev, optimisticMessage])
-    setNewMessage("")
+    const embedding: number[] = embed.embeddings[0]
 
-    try {
-      const cohere = new CohereClient({
-        token: "8K8HLAByaR7Pd7ctj4kEwdha32Y0QId9EriGAU2V",
+    const { data, error } = await supabase
+      .from("messages")
+      .insert({
+        sender_id: currentUser.id,
+        receiver_id: selectedUser.id,
+        content: messageContent,
+        embedding: embedding,
+        is_read: false,
+        is_calendar_event: false,
       })
+      .select()
+      .single()
 
-      const embed = await cohere.embed({
-        texts: [messageContent],
-        model: "embed-english-v3.0",
-        inputType: "search_document",
-      })
+    if (error) throw error
 
-      if (!embed?.embeddings || !Array.isArray(embed.embeddings)) {
-        throw new Error("Failed to generate embedding")
-      }
-
-      const embedding: number[] = embed.embeddings[0]
-
-      const { data, error } = await supabase
-        .from("messages")
-        .insert({
-          sender_id: currentUser.id,
-          receiver_id: selectedUser.id,
-          content: messageContent,
-          embedding: embedding,
-          is_read: false,
-          is_calendar_event: false,
-        })
-        .select()
-        .single()
-
-      if (error) throw error
-
-      if (data) {
-        // Replace optimistic message with real message
-        setMessages((prev) =>
-          prev.map((msg) => (msg.id === tempId ? { ...data, is_read: false, is_optimistic: false } : msg)),
-        )
-      }
-    } catch (error) {
-      console.error("Failed to send message:", error)
-      // Mark message as failed instead of removing it
-      setMessages((prev) =>
-        prev.map((msg) => (msg.id === tempId ? { ...msg, failed: true, is_optimistic: false } : msg)),
-      )
-      // Optionally restore the message content for retry
-      setNewMessage(messageContent)
-    } finally {
-      setSendingMessage(false)
+    if (data) {
+      // Remove the optimistic message and let the real-time subscription add the real one
+      setMessages((prev) => prev.filter(msg => msg.id !== tempId))
     }
-  }, [newMessage, selectedUser, currentUser, sendingMessage])
+  } catch (error) {
+    console.error("Failed to send message:", error)
+    // Mark message as failed
+    setMessages((prev) =>
+      prev.map((msg) => (msg.id === tempId ? { ...msg, failed: true, is_optimistic: false } : msg))
+    )
+    setNewMessage(messageContent)
+  } finally {
+    setSendingMessage(false)
+  }
+}, [newMessage, selectedUser, currentUser, sendingMessage])
 
   const retryMessage = useCallback(
     async (failedMessage: Message) => {
