@@ -278,30 +278,25 @@ const ResponsiveChatApp: React.FC = () => {
         const newMessage = payload.new as Message
         
         setMessages((prev) => {
-          // Check if message already exists (including optimistic messages)
-          const existingMessage = prev.find(msg => 
-            msg.id === newMessage.id || 
-            (msg.is_optimistic && msg.content === newMessage.content && 
-             msg.sender_id === newMessage.sender_id && 
-             Math.abs(new Date(msg.created_at).getTime() - new Date(newMessage.created_at).getTime()) < 5000)
-          )
-          
-          if (existingMessage) {
-            // Replace optimistic message with real one
-            if (existingMessage.is_optimistic) {
-              return prev.map(msg => 
-                msg.id === existingMessage.id 
-                  ? { ...newMessage, is_optimistic: false }
-                  : msg
-              )
-            }
-            // Message already exists, don't duplicate
-            return prev
-          }
-          
-          // New message, add it
-          return [...prev, newMessage]
-        })
+  // Remove optimistic message that matches this new real one
+  const updated = prev.filter(msg => {
+    const isOptimisticMatch =
+      msg.is_optimistic &&
+      msg.content === newMessage.content &&
+      msg.sender_id === newMessage.sender_id &&
+      Math.abs(new Date(msg.created_at).getTime() - new Date(newMessage.created_at).getTime()) < 5000
+
+    return !isOptimisticMatch
+  })
+
+  // Check if real message already exists
+  const alreadyExists = updated.find(msg => msg.id === newMessage.id)
+  if (alreadyExists) return updated
+
+  // Append the new real message
+  return [...updated, newMessage]
+})
+
 
         // Mark as read if it's from the selected user
         if (newMessage.sender_id === selectedUser.id) {
