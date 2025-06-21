@@ -2,21 +2,7 @@
 import type React from "react"
 import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from "react"
 import { supabase } from "@/utils/supabase"
-import {
-  Search,
-  LogOut,
-  X,
-  MessageSquare,
-  Users,
-  CheckSquare,
-  Send,
-  ArrowLeft,
-  MoreVertical,
-  Settings,
-  Phone,
-  Video,
-  Info,
-} from "lucide-react"
+import { Search, LogOut, X, MessageSquare, Users, CheckSquare, Send, ArrowLeft, MoreVertical, Settings, Phone, Video, Info } from 'lucide-react'
 import { CohereClient } from "cohere-ai"
 import useDebounce from "@/hooks/useDebounce"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -261,7 +247,7 @@ const ResponsiveChatApp: React.FC = () => {
     [currentUser],
   )
 
-  useEffect(() => {
+useEffect(() => {
   if (!currentUser || !selectedUser) return
 
   const channel = supabase
@@ -278,25 +264,31 @@ const ResponsiveChatApp: React.FC = () => {
         const newMessage = payload.new as Message
         
         setMessages((prev) => {
-  // Remove optimistic message that matches this new real one
-  const updated = prev.filter(msg => {
-    const isOptimisticMatch =
-      msg.is_optimistic &&
-      msg.content === newMessage.content &&
-      msg.sender_id === newMessage.sender_id &&
-      Math.abs(new Date(msg.created_at).getTime() - new Date(newMessage.created_at).getTime()) < 5000
+          // Prevent duplicates by checking if message already exists
+          const existingIndex = prev.findIndex(msg => msg.id === newMessage.id)
+          if (existingIndex !== -1) {
+            return prev // Message already exists, don't add
+          }
 
-    return !isOptimisticMatch
-  })
-
-  // Check if real message already exists
-  const alreadyExists = updated.find(msg => msg.id === newMessage.id)
-  if (alreadyExists) return updated
-
-  // Append the new real message
-  return [...updated, newMessage]
-})
-
+          // Check for optimistic message to replace
+          const optimisticIndex = prev.findIndex(msg => 
+            msg.is_optimistic && 
+            msg.content === newMessage.content && 
+            msg.sender_id === newMessage.sender_id &&
+            Math.abs(new Date(msg.created_at).getTime() - new Date(newMessage.created_at).getTime()) < 10000
+          )
+          
+          if (optimisticIndex !== -1) {
+            // Replace optimistic message with real one
+            const updatedMessages = [...prev]
+            updatedMessages[optimisticIndex] = { ...newMessage, is_optimistic: false }
+            return updatedMessages
+          }
+          
+          // Add new message in correct chronological order
+          const newMessages = [...prev, newMessage]
+          return newMessages.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+        })
 
         // Mark as read if it's from the selected user
         if (newMessage.sender_id === selectedUser.id) {
@@ -375,12 +367,13 @@ const ResponsiveChatApp: React.FC = () => {
     }, 1000)
   }, [selectedUser, currentUser, isTyping])
 
- const sendMessage = useCallback(async () => {
+const sendMessage = useCallback(async () => {
   const messageContent = newMessage.trim()
   if (!messageContent || !selectedUser || !currentUser || sendingMessage) return
 
   setSendingMessage(true)
   const tempId = `temp_${Date.now()}_${Math.random()}`
+  const now = new Date().toISOString()
 
   // Optimistic UI update
   const optimisticMessage: Message = {
@@ -388,7 +381,7 @@ const ResponsiveChatApp: React.FC = () => {
     sender_id: currentUser.id,
     receiver_id: selectedUser.id,
     content: messageContent,
-    created_at: new Date().toISOString(),
+    created_at: now,
     is_read: false,
     is_calendar_event: false,
     is_optimistic: true,
@@ -429,13 +422,14 @@ const ResponsiveChatApp: React.FC = () => {
 
     if (error) throw error
 
+    // Don't manually add the message here - let the real-time subscription handle it
+    // Just remove the optimistic message if insert was successful
     if (data) {
-      // Remove the optimistic message and let the real-time subscription add the real one
       setMessages((prev) => prev.filter(msg => msg.id !== tempId))
     }
   } catch (error) {
     console.error("Failed to send message:", error)
-    // Mark message as failed
+    // Mark optimistic message as failed
     setMessages((prev) =>
       prev.map((msg) => (msg.id === tempId ? { ...msg, failed: true, is_optimistic: false } : msg))
     )
@@ -575,15 +569,15 @@ const ResponsiveChatApp: React.FC = () => {
       </div>
 
       {/* Desktop Layout */}
-      <div className="hidden lg:flex w-full h-full">
+      <div className="hidden lg:flex w-full h-full min-w-0">
         {/* Left Sidebar - Chats */}
         <div
-          className={`${sidebarCollapsed ? "w-16" : "w-80 2xl:w-96"} border-r bg-card flex flex-col transition-all duration-300 flex-shrink-0`}
+          className={`${sidebarCollapsed ? "w-16" : "w-64 lg:w-72 xl:w-80 2xl:w-96"} border-r bg-card flex flex-col transition-all duration-300 flex-shrink-0`}
         >
           {/* Header */}
           <div className="p-6 border-b flex-shrink-0">
             <div className="flex items-center justify-between mb-4">
-              {!sidebarCollapsed && <h1 className="text-xl font-bold text-foreground">Messages</h1>}
+              {!sidebarCollapsed && <h1 className="text-lg lg:text-xl font-bold text-foreground">Messages</h1>}
               <div className="flex items-center space-x-2">
                 <button
                   onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -701,7 +695,7 @@ const ResponsiveChatApp: React.FC = () => {
                       <span className="text-primary-foreground font-medium">{getInitials(selectedUser)}</span>
                     </div>
                     <div className="min-w-0">
-                      <h2 className="text-xl font-semibold text-foreground truncate">{getDisplayName(selectedUser)}</h2>
+                      <h2 className="text-lg lg:text-xl font-semibold text-foreground truncate">{getDisplayName(selectedUser)}</h2>
                       {typingUsers.has(selectedUser.id) ? (
                         <div className="flex items-center space-x-2">
                           <div className="flex space-x-1">
@@ -725,7 +719,7 @@ const ResponsiveChatApp: React.FC = () => {
 
                   <div className="flex items-center space-x-4">
                     {/* Search */}
-                    <div className="relative w-80">
+                    <div className="relative w-48 lg:w-64 xl:w-80">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                       <input
                         type="text"
@@ -818,7 +812,7 @@ const ResponsiveChatApp: React.FC = () => {
               </div>
 
               {/* Message Input */}
-              <div className="p-6 border-t bg-card/95 backdrop-blur-sm flex-shrink-0">
+              <div className="p-4 lg:p-6 border-t bg-card/95 backdrop-blur-sm flex-shrink-0">
                 <div className="flex space-x-4">
                   <div className="flex-1 relative">
                     <input
@@ -876,7 +870,7 @@ const ResponsiveChatApp: React.FC = () => {
 
         {/* Right Sidebar - Todos */}
         <div
-          className={`${todoSidebarCollapsed ? "w-16" : "w-80 2xl:w-96"} border-l bg-card flex flex-col transition-all duration-300 flex-shrink-0`}
+          className={`${todoSidebarCollapsed ? "w-16" : "w-64 lg:w-72 xl:w-80 2xl:w-96"} border-l bg-card flex flex-col transition-all duration-300 flex-shrink-0`}
         >
           <div className="p-6 border-b flex items-center justify-between">
             {!todoSidebarCollapsed && <h2 className="text-xl font-bold text-foreground">Tasks</h2>}
